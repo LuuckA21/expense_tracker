@@ -1,3 +1,4 @@
+import 'package:expense_tracker/widget/chart/chart.dart';
 import 'package:expense_tracker/widget/expenses_list/expenses_list.dart';
 import 'package:expense_tracker/widget/new_expense.dart';
 import 'package:flutter/material.dart';
@@ -43,17 +44,56 @@ class Expenses extends StatefulWidget {
 class _ExpensesState extends State<Expenses> {
   void _openAddExpenseOverlay() {
     showModalBottomSheet(
+      isScrollControlled: true,
       context: context,
-      builder: (ctx) => const NewExpense(),
+      builder: (ctx) => NewExpense(onAddExpense: _addNewExpense),
+    );
+  }
+
+  void _addNewExpense(Expense expense) {
+    setState(() {
+      expenses.add(expense);
+    });
+  }
+
+  void _removeExpense(Expense expense) {
+    final int expenseIndex = expenses.indexOf(expense);
+    setState(() {
+      expenses.remove(expense);
+    });
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        duration: const Duration(seconds: 5),
+        content: const Text("Expense deleted."),
+        action: SnackBarAction(
+          label: "Undo",
+          onPressed: () {
+            setState(() {
+              expenses.insert(expenseIndex, expense);
+            });
+          },
+        ),
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    Widget mainContent = const Center(
+      child: Text("No expenses found. Start adding some!"),
+    );
+
+    if (expenses.isNotEmpty) {
+      mainContent = ExpensesList(
+        expenses: expenses,
+        onRemoveExpense: _removeExpense,
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text("Flutter Expense Tracker"),
-        backgroundColor: const Color.fromARGB(255, 240, 215, 160),
         actions: [
           IconButton(
             onPressed: _openAddExpenseOverlay,
@@ -61,11 +101,10 @@ class _ExpensesState extends State<Expenses> {
           ),
         ],
       ),
-      backgroundColor: const Color.fromARGB(255, 255, 253, 224),
       body: Column(
         children: [
-          const Text("Chart"),
-          Expanded(child: ExpensesList(expenses: expenses)),
+          Chart(expenses: expenses),
+          Expanded(child: mainContent),
         ],
       ),
     );
